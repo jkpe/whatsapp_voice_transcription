@@ -89,6 +89,22 @@ async function processWhatsAppMessage(webhookData, env) {
 }
 
 /**
+ * Check if a phone number is whitelisted
+ */
+function isPhoneNumberWhitelisted(phoneNumber, env) {
+  // If no whitelist is configured, allow all numbers
+  if (!env.WHITELISTED_PHONE_NUMBERS) {
+    return true;
+  }
+  
+  // Parse the whitelist (comma-separated phone numbers)
+  const whitelistedNumbers = env.WHITELISTED_PHONE_NUMBERS.split(',').map(num => num.trim());
+  
+  // Check if the phone number is in the whitelist
+  return whitelistedNumbers.includes(phoneNumber);
+}
+
+/**
  * Handle voice message transcription
  */
 async function handleVoiceMessage(message, value, env) {
@@ -98,6 +114,12 @@ async function handleVoiceMessage(message, value, env) {
     const messageId = message.id;
     
     console.log(`Processing voice message ${messageId} from ${fromNumber}`);
+    
+    // Check if sender is whitelisted
+    if (!isPhoneNumberWhitelisted(fromNumber, env)) {
+      console.log(`Rejected voice message from non-whitelisted number: ${fromNumber}`);
+      return;
+    }
     
     // Download audio file from WhatsApp
     const audioBuffer = await downloadWhatsAppMedia(audioId, env);
